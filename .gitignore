@@ -3,5 +3,6 @@ node_modules/
 water-mobile.png
 water-full.png
 water-desktop.png
+water-onboarding*.png
 .site-package/
 water-site.tar
