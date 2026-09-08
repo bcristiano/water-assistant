@@ -96,38 +96,17 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">健康参数</p>
-              <h2 id="profileTitle">专属目标</h2>
+              <h2 id="profileTitle">环境与活动</h2>
             </div>
-            <output class="suggestion-pill" id="suggestedGoal">建议 2000 ml</output>
+            <div class="section-actions">
+              <output class="suggestion-pill" id="suggestedGoal">建议 2000 ml</output>
+              <button class="icon-button" id="openProfileSetup" type="button" aria-label="修改个人资料" title="修改个人资料">
+                <i data-lucide="settings"></i>
+              </button>
+            </div>
           </div>
 
-          <div class="form-grid">
-            <label>
-              性别
-              <select id="sex">
-                <option value="female">女性</option>
-                <option value="male">男性</option>
-                <option value="other">其他/不透露</option>
-              </select>
-            </label>
-            <label>
-              年龄
-              <input id="age" type="number" inputmode="numeric" min="12" max="100">
-            </label>
-            <label>
-              体重
-              <div class="number-field compact">
-                <input id="weight" type="number" inputmode="decimal" min="30" max="220" step="0.5">
-                <span>kg</span>
-              </div>
-            </label>
-            <label>
-              身高
-              <div class="number-field compact">
-                <input id="height" type="number" inputmode="numeric" min="120" max="230">
-                <span>cm</span>
-              </div>
-            </label>
+          <div class="form-grid environment-grid">
             <label>
               活动量
               <select id="activity">
@@ -214,6 +193,57 @@
           <div class="history-list" id="historyList"></div>
         </section>
       </main>
+    </div>
+
+    <div class="onboarding" id="onboarding" hidden>
+      <form class="onboarding-panel" id="profileSetupForm">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">首次设置</p>
+            <h2>建立专属目标</h2>
+          </div>
+          <button class="icon-button" id="closeProfileSetup" type="button" aria-label="关闭" title="关闭">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
+        <div class="form-grid setup-grid">
+          <label>
+            性别
+            <select id="sex" required>
+              <option value="female">女性</option>
+              <option value="male">男性</option>
+              <option value="other">其他/不透露</option>
+            </select>
+          </label>
+          <label>
+            年龄
+            <input id="age" type="number" inputmode="numeric" min="12" max="100" required>
+          </label>
+          <label>
+            体重
+            <div class="number-field compact">
+              <input id="weight" type="number" inputmode="decimal" min="30" max="220" step="0.5" required>
+              <span>kg</span>
+            </div>
+          </label>
+          <label>
+            身高
+            <div class="number-field compact">
+              <input id="height" type="number" inputmode="numeric" min="120" max="230" required>
+              <span>cm</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="setup-footer">
+          <output class="suggestion-pill" id="setupSuggestedGoal">建议 2000 ml</output>
+          <button class="primary-button" id="saveProfileButton" type="submit">
+            <i data-lucide="check"></i>
+            <span id="saveProfileLabel">保存并开始</span>
+          </button>
+        </div>
+      </form>
     </div>
 
     <template id="historyItemTemplate">

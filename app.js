@@ -18,6 +18,7 @@ const defaultState = {
     temperature: 24,
     humidity: 55
   },
+  profileComplete: false,
   goalMl: 2100,
   reminders: {
     enabled: false,
@@ -30,6 +31,7 @@ const defaultState = {
 
 let state = loadState();
 let reminderTimer = null;
+let editingProfile = false;
 const amountOptions = [100, 200, 250, 350, 500];
 
 const elements = {
@@ -50,6 +52,12 @@ const elements = {
   customLogForm: document.querySelector("#customLogForm"),
   customAmount: document.querySelector("#customAmount"),
   suggestedGoal: document.querySelector("#suggestedGoal"),
+  setupSuggestedGoal: document.querySelector("#setupSuggestedGoal"),
+  onboarding: document.querySelector("#onboarding"),
+  profileSetupForm: document.querySelector("#profileSetupForm"),
+  openProfileSetup: document.querySelector("#openProfileSetup"),
+  closeProfileSetup: document.querySelector("#closeProfileSetup"),
+  saveProfileLabel: document.querySelector("#saveProfileLabel"),
   sex: document.querySelector("#sex"),
   age: document.querySelector("#age"),
   weight: document.querySelector("#weight"),
@@ -131,6 +139,34 @@ function bindEvents() {
   elements.applySuggestedGoal.addEventListener("click", () => {
     state.goalMl = calculateSuggestedGoal(state.profile);
     elements.goalInput.value = state.goalMl;
+    saveState();
+    render();
+  });
+
+  elements.openProfileSetup.addEventListener("click", () => {
+    editingProfile = true;
+    syncForm();
+    render();
+  });
+
+  elements.closeProfileSetup.addEventListener("click", () => {
+    if (!state.profileComplete) return;
+    editingProfile = false;
+    render();
+  });
+
+  elements.profileSetupForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const firstSetup = !state.profileComplete;
+    state.profile.sex = elements.sex.value;
+    state.profile.age = clamp(readNumber(elements.age.value, defaultState.profile.age), 12, 100);
+    state.profile.weight = clamp(readNumber(elements.weight.value, defaultState.profile.weight), 30, 220);
+    state.profile.height = clamp(readNumber(elements.height.value, defaultState.profile.height), 120, 230);
+    state.profileComplete = true;
+    editingProfile = false;
+    if (firstSetup) {
+      state.goalMl = calculateSuggestedGoal(state.profile);
+    }
     saveState();
     render();
   });
@@ -254,6 +290,7 @@ function render(updateInputs = true) {
   elements.progressPercent.textContent = `${percent}%`;
   elements.waterFill.style.height = `${percent}%`;
   elements.suggestedGoal.value = `建议 ${suggested} ml`;
+  elements.setupSuggestedGoal.value = `建议 ${suggested} ml`;
   elements.nextCupMl.textContent = remaining > 0 ? `${nextCup} ml` : "完成";
   elements.weeklyAverage.textContent = `${calculateAverageForDays(7)} ml`;
   elements.streakDays.textContent = `${calculateStreak(goal)} 天`;
@@ -264,6 +301,7 @@ function render(updateInputs = true) {
   }
 
   renderHistory(entries);
+  renderProfileSetup();
   refreshIcons();
 }
 
@@ -280,6 +318,14 @@ function syncForm() {
   elements.intervalMinutes.value = state.reminders.intervalMinutes;
   elements.startTime.value = state.reminders.startTime;
   elements.endTime.value = state.reminders.endTime;
+}
+
+function renderProfileSetup() {
+  const shouldShow = !state.profileComplete || editingProfile;
+  elements.onboarding.hidden = !shouldShow;
+  elements.closeProfileSetup.hidden = !state.profileComplete;
+  elements.saveProfileLabel.textContent = state.profileComplete ? "保存资料" : "保存并开始";
+  document.body.classList.toggle("modal-open", shouldShow);
 }
 
 function renderHistory(entries) {
