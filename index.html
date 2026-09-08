@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="饮水助手">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>饮水助手</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">今日补水</p>
+          <h1>饮水助手</h1>
+        </div>
+        <button class="icon-button" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
+          <i data-lucide="moon"></i>
+        </button>
+      </header>
+
+      <main>
+        <section class="hero-panel" aria-labelledby="progressTitle">
+          <div class="progress-visual" aria-hidden="true">
+            <div class="water-orb">
+              <div class="water-fill" id="waterFill"></div>
+              <div class="water-shine"></div>
+              <span id="progressPercent">0%</span>
+            </div>
+          </div>
+          <div class="hero-copy">
+            <p class="date-line" id="todayLabel">今天</p>
+            <h2 id="progressTitle">还差 <span id="remainingMl">0</span> ml</h2>
+            <p class="hero-subline">
+              已喝 <strong id="drunkMl">0</strong> ml / 目标 <strong id="goalMl">2000</strong> ml
+            </p>
+            <div class="insight-strip" aria-label="今日节奏">
+              <div>
+                <span>下一杯</span>
+                <strong id="nextCupMl">250 ml</strong>
+              </div>
+              <div>
+                <span>7日平均</span>
+                <strong id="weeklyAverage">0 ml</strong>
+              </div>
+              <div>
+                <span>连续达标</span>
+                <strong id="streakDays">0 天</strong>
+              </div>
+            </div>
+            <div class="goal-row">
+              <label for="goalInput">目标</label>
+              <div class="number-field">
+                <input id="goalInput" type="number" inputmode="numeric" min="500" max="6000" step="50">
+                <span>ml</span>
+              </div>
+              <button class="text-button" id="applySuggestedGoal" type="button">
+                <i data-lucide="sparkles"></i>
+                采用建议
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel quick-log" aria-labelledby="logTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">随时记录</p>
+              <h2 id="logTitle">刚刚喝了多少</h2>
+            </div>
+            <button class="icon-button" id="undoDrink" type="button" aria-label="撤销最近一杯" title="撤销最近一杯">
+              <i data-lucide="undo-2"></i>
+            </button>
+          </div>
+
+          <div class="quick-grid" id="quickAmounts"></div>
+          <form class="custom-log" id="customLogForm">
+            <div class="number-field wide">
+              <input id="customAmount" type="number" inputmode="numeric" min="1" max="2000" step="10" placeholder="自定义">
+              <span>ml</span>
+            </div>
+            <button class="primary-button" type="submit">
+              <i data-lucide="plus"></i>
+              记录
+            </button>
+          </form>
+        </section>
+
+        <section class="panel" aria-labelledby="profileTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">健康参数</p>
+              <h2 id="profileTitle">专属目标</h2>
+            </div>
+            <output class="suggestion-pill" id="suggestedGoal">建议 2000 ml</output>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              性别
+              <select id="sex">
+                <option value="female">女性</option>
+                <option value="male">男性</option>
+                <option value="other">其他/不透露</option>
+              </select>
+            </label>
+            <label>
+              年龄
+              <input id="age" type="number" inputmode="numeric" min="12" max="100">
+            </label>
+            <label>
+              体重
+              <div class="number-field compact">
+                <input id="weight" type="number" inputmode="decimal" min="30" max="220" step="0.5">
+                <span>kg</span>
+              </div>
+            </label>
+            <label>
+              身高
+              <div class="number-field compact">
+                <input id="height" type="number" inputmode="numeric" min="120" max="230">
+                <span>cm</span>
+              </div>
+            </label>
+            <label>
+              活动量
+              <select id="activity">
+                <option value="low">久坐</option>
+                <option value="normal">日常活动</option>
+                <option value="active">经常运动</option>
+                <option value="intense">高强度运动</option>
+              </select>
+            </label>
+            <label>
+              气温
+              <div class="number-field compact">
+                <input id="temperature" type="number" inputmode="decimal" min="-20" max="55" step="0.5">
+                <span>℃</span>
+              </div>
+            </label>
+            <label>
+              湿度
+              <div class="number-field compact">
+                <input id="humidity" type="number" inputmode="numeric" min="0" max="100">
+                <span>%</span>
+              </div>
+            </label>
+            <button class="text-button weather-button" id="useWeather" type="button">
+              <i data-lucide="map-pin"></i>
+              获取天气
+            </button>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="reminderTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">手表提醒</p>
+              <h2 id="reminderTitle">提醒节奏</h2>
+            </div>
+            <label class="switch">
+              <input id="remindersEnabled" type="checkbox">
+              <span></span>
+            </label>
+          </div>
+
+          <div class="reminder-grid">
+            <label>
+              间隔
+              <div class="number-field compact">
+                <input id="intervalMinutes" type="number" inputmode="numeric" min="15" max="240" step="5">
+                <span>分钟</span>
+              </div>
+            </label>
+            <label>
+              开始
+              <input id="startTime" type="time">
+            </label>
+            <label>
+              结束
+              <input id="endTime" type="time">
+            </label>
+          </div>
+          <div class="reminder-actions">
+            <button class="primary-button" id="requestNotifications" type="button">
+              <i data-lucide="bell"></i>
+              开启通知
+            </button>
+            <button class="text-button" id="downloadCalendar" type="button">
+              <i data-lucide="calendar-down"></i>
+              日历提醒
+            </button>
+            <p class="status-line" id="notificationStatus">通知未开启</p>
+            <p class="status-line" id="calendarStatus">可同步到 Apple Watch</p>
+          </div>
+        </section>
+
+        <section class="panel history-panel" aria-labelledby="historyTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">今日明细</p>
+              <h2 id="historyTitle">饮水记录</h2>
+            </div>
+            <button class="icon-button" id="clearToday" type="button" aria-label="清空今天" title="清空今天">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="historyItemTemplate">
+      <article class="history-item">
+        <div>
+          <strong class="entry-amount"></strong>
+          <span class="entry-time"></span>
+        </div>
+        <button class="icon-button small delete-entry" type="button" aria-label="删除记录" title="删除记录">
+          <i data-lucide="x"></i>
+        </button>
+      </article>
+    </template>
+
+    <script src="assets/lucide.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

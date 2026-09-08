@@ -1,0 +1,10 @@
+{
+  "name": "personal-water-reminder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A mobile-first hydration tracker and reminder PWA.",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node scripts/check.js"
+  }
+}

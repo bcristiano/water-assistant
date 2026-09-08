@@ -1,0 +1,5 @@
+node_modules/
+*.log
+water-mobile.png
+water-full.png
+water-desktop.png

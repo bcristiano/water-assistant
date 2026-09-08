@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="饮水助手图标">
+  <defs>
+    <linearGradient id="bg" x1="20" x2="110" y1="12" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2dd4bf"/>
+      <stop offset="0.55" stop-color="#0d9488"/>
+      <stop offset="1" stop-color="#0e7490"/>
+    </linearGradient>
+    <linearGradient id="drop" x1="39" x2="89" y1="30" y2="101" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ecfeff"/>
+      <stop offset="1" stop-color="#a7f3d0"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <path fill="url(#drop)" d="M64 20c13 18 31 38 31 58 0 18-13 31-31 31S33 96 33 78c0-20 18-40 31-58Z"/>
+  <path fill="#ffffff" fill-opacity="0.62" d="M52 52c-8 10-9 24-2 34 2 3 0 7-4 5-9-5-12-23-2-38 3-5 12-6 8-1Z"/>
+</svg>
