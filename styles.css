@@ -300,7 +300,8 @@ main {
 
 .custom-log,
 .form-grid,
-.reminder-grid {
+.reminder-grid,
+.reminder-summary {
   display: grid;
   gap: 10px;
 }
@@ -326,6 +327,19 @@ main {
 .reminder-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 14px;
+}
+
+.reminder-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 10px;
+}
+
+.reminder-summary div {
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
 }
 
 label {
@@ -606,7 +620,8 @@ select:focus {
   }
 
   .form-grid,
-  .reminder-grid {
+  .reminder-grid,
+  .reminder-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -623,6 +638,7 @@ select:focus {
   .custom-log,
   .form-grid,
   .reminder-grid,
+  .reminder-summary,
   .setup-grid {
     grid-template-columns: 1fr;
   }

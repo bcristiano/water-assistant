@@ -70,6 +70,8 @@ const elements = {
   intervalMinutes: document.querySelector("#intervalMinutes"),
   startTime: document.querySelector("#startTime"),
   endTime: document.querySelector("#endTime"),
+  nextReminderAt: document.querySelector("#nextReminderAt"),
+  reminderBasis: document.querySelector("#reminderBasis"),
   requestNotifications: document.querySelector("#requestNotifications"),
   notificationStatus: document.querySelector("#notificationStatus"),
   downloadCalendar: document.querySelector("#downloadCalendar"),
@@ -197,6 +199,7 @@ function bindEvents() {
     if (entries.length) {
       entries.pop();
       saveState();
+      scheduleNextReminder();
       render();
     }
   });
@@ -204,6 +207,7 @@ function bindEvents() {
   elements.clearToday.addEventListener("click", () => {
     state.entriesByDate[todayKey()] = [];
     saveState();
+    scheduleNextReminder();
     render();
   });
 
@@ -269,6 +273,7 @@ function addEntry(rawAmount) {
     time: new Date().toISOString()
   });
   saveState();
+  scheduleNextReminder();
   render();
 }
 
@@ -307,6 +312,7 @@ function render(updateInputs = true) {
   elements.weeklyAverage.textContent = `${calculateAverageForDays(7)} ml`;
   elements.streakDays.textContent = `${calculateStreak(goal)} 天`;
   elements.notificationStatus.textContent = notificationStatusText();
+  renderReminderSchedule();
 
   if (updateInputs) {
     syncForm();
@@ -358,6 +364,7 @@ function renderHistory(entries) {
     item.querySelector(".delete-entry").addEventListener("click", () => {
       state.entriesByDate[todayKey()] = getTodayEntries().filter((candidate) => candidate.id !== entry.id);
       saveState();
+      scheduleNextReminder();
       render();
     });
     elements.historyList.append(item);
@@ -510,30 +517,71 @@ function scheduleNextReminder() {
     return;
   }
 
-  const delay = millisecondsUntilNextReminder();
+  const delay = Math.max(1000, getNextReminderTime().getTime() - Date.now());
   reminderTimer = setTimeout(() => {
     sendHydrationNotification();
     scheduleNextReminder();
   }, delay);
 }
 
-function millisecondsUntilNextReminder() {
+function getNextReminderTime() {
   const now = new Date();
   const start = timeToday(state.reminders.startTime);
   const end = timeToday(state.reminders.endTime);
   const interval = clamp(state.reminders.intervalMinutes, 15, 240) * 60 * 1000;
+  const tomorrowStart = timeToday(state.reminders.startTime);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const lastDrink = getLastDrinkTime();
+  let target = lastDrink ? new Date(lastDrink.getTime() + interval) : new Date(now.getTime() + interval);
 
   if (now < start) {
-    return start.getTime() - now.getTime();
+    return start;
   }
 
   if (now > end) {
-    const tomorrowStart = timeToday(state.reminders.startTime);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-    return tomorrowStart.getTime() - now.getTime();
+    return tomorrowStart;
   }
 
-  return interval;
+  const todayTotal = getTodayEntries().reduce((sum, entry) => sum + entry.amount, 0);
+  if (todayTotal >= state.goalMl) {
+    return tomorrowStart;
+  }
+
+  if (target < now) {
+    target = new Date(now.getTime() + 1000);
+  }
+
+  if (target < start) {
+    return start;
+  }
+
+  if (target > end) {
+    return tomorrowStart;
+  }
+
+  return target;
+}
+
+function renderReminderSchedule() {
+  const hasPermission = "Notification" in window && Notification.permission === "granted";
+  if (!state.reminders.enabled) {
+    elements.nextReminderAt.textContent = "提醒未开启";
+  } else if (!hasPermission) {
+    elements.nextReminderAt.textContent = "等待通知权限";
+  } else {
+    elements.nextReminderAt.textContent = formatReminderTime(getNextReminderTime());
+  }
+
+  const lastDrink = getLastDrinkTime();
+  elements.reminderBasis.textContent = lastDrink ? `上次喝水 ${formatTime(lastDrink.toISOString())}` : "从现在开始";
+}
+
+function getLastDrinkTime() {
+  return Object.values(state.entriesByDate)
+    .flat()
+    .map((entry) => new Date(entry.time))
+    .filter((date) => Number.isFinite(date.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime())[0] || null;
 }
 
 function timeToday(value) {
@@ -543,23 +591,38 @@ function timeToday(value) {
   return date;
 }
 
-function sendHydrationNotification() {
+async function sendHydrationNotification() {
   const entries = getTodayEntries();
   const total = entries.reduce((sum, entry) => sum + entry.amount, 0);
   const remaining = Math.max(0, state.goalMl - total);
 
   if (remaining <= 0) {
-    new Notification("今天目标已完成", {
+    await showHydrationNotice("今天目标已完成", {
       body: "可以保持少量补水，继续维持好状态。",
       icon: "assets/icon-192.png"
     });
     return;
   }
 
-  new Notification("该喝水了", {
+  await showHydrationNotice("该喝水了", {
     body: `今天还差 ${remaining} ml，建议先喝 ${calculateNextCup(total, state.goalMl, state.profile)} ml。`,
     icon: "assets/icon-192.png"
   });
+}
+
+async function showHydrationNotice(title, options) {
+  try {
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration?.showNotification) {
+        await registration.showNotification(title, options);
+        return;
+      }
+    }
+  } catch {
+  }
+
+  new Notification(title, options);
 }
 
 function downloadCalendarReminders() {
@@ -659,6 +722,16 @@ function formatTime(iso) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(iso));
+}
+
+function formatReminderTime(date) {
+  const targetKey = [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
+  ].join("-");
+  const time = formatTime(date.toISOString());
+  return targetKey === todayKey() ? time : `明天 ${time}`;
 }
 
 function readNumber(value, fallback) {
