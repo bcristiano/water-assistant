@@ -27,7 +27,13 @@ http://localhost:4173
 
 ## 放到手机上
 
-把这个项目部署到 HTTPS 地址后，在 iPhone 上用 Safari 打开网址，点击分享按钮，选择“添加到主屏幕”。
+已部署地址：
+
+```text
+https://bcristiano-water-assistant.bcristianooooo.chatgpt.site
+```
+
+在 iPhone 上用 Safari 打开网址，点击分享按钮，选择“添加到主屏幕”。
 
 通知提醒需要在手机上打开通知权限。网页 App 的本地定时提醒依赖 App 保持运行；如果需要完全后台、定时推送到 Apple Watch，需要再接入服务器推送。
 
