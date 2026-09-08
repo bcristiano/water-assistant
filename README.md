@@ -40,3 +40,17 @@ https://bcristiano-water-assistant.bcristianooooo.chatgpt.site
 通知提醒需要在手机上打开通知权限。网页 App 的本地定时提醒依赖 App 保持运行；如果需要完全后台、定时推送到 Apple Watch，需要再接入服务器推送。
 
 也可以在“提醒节奏”里点“日历提醒”，把生成的 `water-reminders.ics` 添加到 Apple 日历。日历提醒会更稳定地同步到 Apple Watch。
+
+## GitHub Pages 部署
+
+1. 在 GitHub 新建一个公开仓库，例如 `water-assistant`。
+2. 把本项目推送到仓库的 `main` 分支。
+3. 打开仓库的 `Settings` -> `Pages`。
+4. `Build and deployment` 选择 `GitHub Actions`。
+5. 等待 `Deploy to GitHub Pages` 工作流完成。
+
+完成后网址通常是：
+
+```text
+https://你的用户名.github.io/water-assistant/
+```

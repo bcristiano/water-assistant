@@ -4,6 +4,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const dist = path.join(root, "dist");
 const files = [
+  ".nojekyll",
   "index.html",
   "styles.css",
   "app.js",

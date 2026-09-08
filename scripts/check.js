@@ -4,6 +4,7 @@ const vm = require("vm");
 
 const root = path.resolve(__dirname, "..");
 const required = [
+  ".nojekyll",
   "index.html",
   "styles.css",
   "app.js",
