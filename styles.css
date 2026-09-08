@@ -454,6 +454,10 @@ select:focus {
   justify-content: flex-end;
 }
 
+.profile-button {
+  min-height: 40px;
+}
+
 :root.dark .suggestion-pill {
   color: #fde68a;
 }
