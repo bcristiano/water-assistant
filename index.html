@@ -26,7 +26,8 @@
       </header>
 
       <main>
-        <section class="hero-panel" aria-labelledby="progressTitle">
+        <section class="view active-view" data-view="home">
+          <section class="hero-panel" aria-labelledby="progressTitle">
           <div class="progress-visual" aria-hidden="true">
             <div class="water-orb">
               <div class="water-fill" id="waterFill"></div>
@@ -68,7 +69,7 @@
           </div>
         </section>
 
-        <section class="panel quick-log" aria-labelledby="logTitle">
+          <section class="panel quick-log" aria-labelledby="logTitle">
           <div class="section-heading">
             <div>
               <p class="eyebrow">随时记录</p>
@@ -90,9 +91,11 @@
               记录
             </button>
           </form>
+          </section>
         </section>
 
-        <section class="panel" aria-labelledby="profileTitle">
+        <section class="view" data-view="health" hidden>
+          <section class="panel" aria-labelledby="profileTitle">
           <div class="section-heading">
             <div>
               <p class="eyebrow">健康参数</p>
@@ -136,9 +139,11 @@
               获取天气
             </button>
           </div>
+          </section>
         </section>
 
-        <section class="panel" aria-labelledby="reminderTitle">
+        <section class="view" data-view="reminder" hidden>
+          <section class="panel" aria-labelledby="reminderTitle">
           <div class="section-heading">
             <div>
               <p class="eyebrow">手表提醒</p>
@@ -189,9 +194,11 @@
             <p class="status-line" id="notificationStatus">通知未开启</p>
             <p class="status-line" id="calendarStatus">可同步到 Apple Watch</p>
           </div>
+          </section>
         </section>
 
-        <section class="panel history-panel" aria-labelledby="historyTitle">
+        <section class="view" data-view="history" hidden>
+          <section class="panel history-panel" aria-labelledby="historyTitle">
           <div class="section-heading">
             <div>
               <p class="eyebrow">今日明细</p>
@@ -202,8 +209,28 @@
             </button>
           </div>
           <div class="history-list" id="historyList"></div>
+          </section>
         </section>
       </main>
+
+      <nav class="bottom-nav" aria-label="主要功能">
+        <button class="nav-button active" type="button" data-target-view="home" aria-selected="true">
+          <i data-lucide="home"></i>
+          <span>首页</span>
+        </button>
+        <button class="nav-button" type="button" data-target-view="health" aria-selected="false">
+          <i data-lucide="activity"></i>
+          <span>健康</span>
+        </button>
+        <button class="nav-button" type="button" data-target-view="reminder" aria-selected="false">
+          <i data-lucide="bell"></i>
+          <span>提醒</span>
+        </button>
+        <button class="nav-button" type="button" data-target-view="history" aria-selected="false">
+          <i data-lucide="list"></i>
+          <span>记录</span>
+        </button>
+      </nav>
     </div>
 
     <div class="onboarding" id="onboarding" hidden>

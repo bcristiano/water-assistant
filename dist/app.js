@@ -1,4 +1,6 @@
 const STORAGE_KEY = "water-assistant-v1";
+const MAX_REMINDER_ALERTS = 2;
+const FOLLOW_UP_MINUTES = 10;
 const todayKey = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -24,7 +26,10 @@ const defaultState = {
     enabled: false,
     intervalMinutes: 90,
     startTime: "08:30",
-    endTime: "22:00"
+    endTime: "22:00",
+    anchorTime: null,
+    alertCount: 0,
+    lastAlertAt: null
   },
   entriesByDate: {}
 };
@@ -32,9 +37,12 @@ const defaultState = {
 let state = loadState();
 let reminderTimer = null;
 let editingProfile = false;
+let activeView = "home";
 const amountOptions = [100, 200, 250, 350, 500];
 
 const elements = {
+  views: document.querySelectorAll("[data-view]"),
+  navButtons: document.querySelectorAll("[data-target-view]"),
   themeToggle: document.querySelector("#themeToggle"),
   todayLabel: document.querySelector("#todayLabel"),
   waterFill: document.querySelector("#waterFill"),
@@ -86,8 +94,12 @@ boot();
 function boot() {
   registerServiceWorker();
   ensureTodayBucket();
+  if (normalizeReminderCycle()) {
+    saveState();
+  }
   buildQuickButtons();
   bindEvents();
+  setActiveView(activeView);
   syncForm();
   render();
   scheduleNextReminder();
@@ -137,6 +149,10 @@ function ensureTodayBucket() {
 }
 
 function bindEvents() {
+  elements.navButtons.forEach((button) => {
+    button.addEventListener("click", () => setActiveView(button.dataset.targetView));
+  });
+
   elements.themeToggle.addEventListener("click", () => {
     state.theme = state.theme === "dark" ? "light" : "dark";
     saveState();
@@ -198,6 +214,7 @@ function bindEvents() {
     const entries = getTodayEntries();
     if (entries.length) {
       entries.pop();
+      resetReminderCycle();
       saveState();
       scheduleNextReminder();
       render();
@@ -206,6 +223,7 @@ function bindEvents() {
 
   elements.clearToday.addEventListener("click", () => {
     state.entriesByDate[todayKey()] = [];
+    resetReminderCycle();
     saveState();
     scheduleNextReminder();
     render();
@@ -227,6 +245,7 @@ function bindEvents() {
       state.reminders[field] = field === "intervalMinutes"
         ? clamp(readNumber(elements[field].value, 90), 15, 240)
         : elements[field].value;
+      resetReminderCycle();
       saveState();
       scheduleNextReminder();
       render(false);
@@ -237,6 +256,9 @@ function bindEvents() {
     if (elements.remindersEnabled.checked) {
       const result = await requestNotificationPermission();
       state.reminders.enabled = result === "granted";
+      if (state.reminders.enabled) {
+        resetReminderCycle();
+      }
     } else {
       state.reminders.enabled = false;
     }
@@ -248,12 +270,16 @@ function bindEvents() {
   elements.requestNotifications.addEventListener("click", async () => {
     const result = await requestNotificationPermission();
     state.reminders.enabled = result === "granted";
+    if (state.reminders.enabled) {
+      resetReminderCycle();
+    }
     saveState();
     scheduleNextReminder();
     render();
     if (result === "granted") {
+      const nextReminder = getNextReminderTime();
       await showHydrationNotice("喝水提醒已开启", {
-        body: `下次提醒：${formatReminderTime(getNextReminderTime())}`,
+        body: nextReminder ? `下次提醒：${formatReminderTime(nextReminder)}` : "记录喝水后会重新计算下一次提醒",
         icon: "assets/icon-192.png"
       });
     }
@@ -261,6 +287,27 @@ function bindEvents() {
 
   elements.downloadCalendar.addEventListener("click", downloadCalendarReminders);
   elements.useWeather.addEventListener("click", useCurrentWeather);
+}
+
+function setActiveView(viewName) {
+  const nextView = Array.from(elements.views).some((view) => view.dataset.view === viewName)
+    ? viewName
+    : "home";
+  activeView = nextView;
+
+  elements.views.forEach((view) => {
+    const isActive = view.dataset.view === nextView;
+    view.hidden = !isActive;
+    view.classList.toggle("active-view", isActive);
+  });
+
+  elements.navButtons.forEach((button) => {
+    const isActive = button.dataset.targetView === nextView;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  refreshIcons();
 }
 
 function buildQuickButtons() {
@@ -277,11 +324,13 @@ function buildQuickButtons() {
 
 function addEntry(rawAmount) {
   const amount = clamp(Math.round(Number(rawAmount)), 1, 2000);
-  getTodayEntries().push({
+  const entry = {
     id: window.crypto?.randomUUID ? window.crypto.randomUUID() : String(Date.now()),
     amount,
     time: new Date().toISOString()
-  });
+  };
+  getTodayEntries().push(entry);
+  resetReminderCycle(new Date(entry.time));
   saveState();
   scheduleNextReminder();
   render();
@@ -373,6 +422,7 @@ function renderHistory(entries) {
     item.querySelector(".entry-time").textContent = formatTime(entry.time);
     item.querySelector(".delete-entry").addEventListener("click", () => {
       state.entriesByDate[todayKey()] = getTodayEntries().filter((candidate) => candidate.id !== entry.id);
+      resetReminderCycle();
       saveState();
       scheduleNextReminder();
       render();
@@ -453,6 +503,10 @@ function getEntriesForDate(key) {
 function dateKeyOffset(offsetDays) {
   const date = new Date();
   date.setDate(date.getDate() + offsetDays);
+  return dateKeyFromDate(date);
+}
+
+function dateKeyFromDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -527,14 +581,33 @@ async function requestNotificationPermission() {
 
 function scheduleNextReminder() {
   clearTimeout(reminderTimer);
+  if (normalizeReminderCycle()) {
+    saveState();
+  }
 
   if (!state.reminders.enabled || !("Notification" in window) || Notification.permission !== "granted") {
     return;
   }
 
-  const delay = Math.max(1000, getNextReminderTime().getTime() - Date.now());
-  reminderTimer = setTimeout(() => {
-    sendHydrationNotification();
+  const nextReminder = getNextReminderTime();
+  if (!nextReminder) {
+    return;
+  }
+
+  const delay = Math.max(1000, nextReminder.getTime() - Date.now());
+  reminderTimer = setTimeout(async () => {
+    if (normalizeReminderCycle()) {
+      saveState();
+      render(false);
+      scheduleNextReminder();
+      return;
+    }
+
+    await sendHydrationNotification();
+    state.reminders.alertCount = clamp(readNumber(state.reminders.alertCount, 0) + 1, 0, MAX_REMINDER_ALERTS);
+    state.reminders.lastAlertAt = new Date().toISOString();
+    saveState();
+    render(false);
     scheduleNextReminder();
   }, delay);
 }
@@ -543,11 +616,10 @@ function getNextReminderTime() {
   const now = new Date();
   const start = timeToday(state.reminders.startTime);
   const end = timeToday(state.reminders.endTime);
-  const interval = clamp(state.reminders.intervalMinutes, 15, 240) * 60 * 1000;
+  const intervalMinutes = clamp(state.reminders.intervalMinutes, 15, 240);
   const tomorrowStart = timeToday(state.reminders.startTime);
   tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  const lastDrink = getLastDrinkTime();
-  let target = lastDrink ? new Date(lastDrink.getTime() + interval) : new Date(now.getTime() + interval);
+  const alertCount = clamp(readNumber(state.reminders.alertCount, 0), 0, MAX_REMINDER_ALERTS);
 
   if (now < start) {
     return start;
@@ -561,6 +633,16 @@ function getNextReminderTime() {
   if (todayTotal >= state.goalMl) {
     return tomorrowStart;
   }
+
+  if (alertCount >= MAX_REMINDER_ALERTS) {
+    return null;
+  }
+
+  const anchor = getReminderAnchorTime();
+  const lastAlert = parseDate(state.reminders.lastAlertAt);
+  let target = alertCount === 0
+    ? addMinutes(anchor, intervalMinutes)
+    : addMinutes(lastAlert || now, FOLLOW_UP_MINUTES);
 
   if (target < now) {
     target = new Date(now.getTime() + 1000);
@@ -579,16 +661,24 @@ function getNextReminderTime() {
 
 function renderReminderSchedule() {
   const hasPermission = "Notification" in window && Notification.permission === "granted";
+  const nextReminder = getNextReminderTime();
+  const alertCount = clamp(readNumber(state.reminders.alertCount, 0), 0, MAX_REMINDER_ALERTS);
+
   if (!state.reminders.enabled) {
     elements.nextReminderAt.textContent = "提醒未开启";
   } else if (!hasPermission) {
     elements.nextReminderAt.textContent = "等待通知权限";
+  } else if (!nextReminder) {
+    elements.nextReminderAt.textContent = "本轮已提醒 2 次";
   } else {
-    elements.nextReminderAt.textContent = formatReminderTime(getNextReminderTime());
+    elements.nextReminderAt.textContent = formatReminderTime(nextReminder);
   }
 
-  const lastDrink = getLastDrinkTime();
-  elements.reminderBasis.textContent = lastDrink ? `上次喝水 ${formatTime(lastDrink.toISOString())}` : "从现在开始";
+  const lastDrink = getLastDrinkTimeForToday();
+  const baseText = lastDrink ? `上次喝水 ${formatTime(lastDrink.toISOString())}` : "从现在开始";
+  elements.reminderBasis.textContent = state.reminders.enabled
+    ? `${baseText}，已提醒 ${alertCount}/${MAX_REMINDER_ALERTS} 次`
+    : baseText;
 }
 
 function getLastDrinkTime() {
@@ -599,11 +689,59 @@ function getLastDrinkTime() {
     .sort((a, b) => b.getTime() - a.getTime())[0] || null;
 }
 
+function getLastDrinkTimeForToday() {
+  return getTodayEntries()
+    .map((entry) => new Date(entry.time))
+    .filter((date) => Number.isFinite(date.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime())[0] || null;
+}
+
+function resetReminderCycle(anchorDate = getLastDrinkTimeForToday() || new Date()) {
+  const anchor = parseDate(anchorDate) || new Date();
+  state.reminders.anchorTime = anchor.toISOString();
+  state.reminders.alertCount = 0;
+  state.reminders.lastAlertAt = null;
+}
+
+function normalizeReminderCycle() {
+  const currentAnchor = parseDate(state.reminders.anchorTime);
+  const latestDrink = getLastDrinkTimeForToday();
+  const desiredAnchor = latestDrink || currentAnchor;
+  const shouldReset = !desiredAnchor || dateKeyFromDate(desiredAnchor) !== todayKey()
+    || (latestDrink && (!currentAnchor || latestDrink.getTime() !== currentAnchor.getTime()));
+
+  if (shouldReset) {
+    resetReminderCycle(latestDrink || new Date());
+    return true;
+  }
+
+  const normalizedCount = clamp(Math.round(readNumber(state.reminders.alertCount, 0)), 0, MAX_REMINDER_ALERTS);
+  const hadInvalidCount = normalizedCount !== state.reminders.alertCount;
+  state.reminders.alertCount = normalizedCount;
+
+  if (state.reminders.lastAlertAt && !parseDate(state.reminders.lastAlertAt)) {
+    state.reminders.lastAlertAt = null;
+    return true;
+  }
+
+  return hadInvalidCount;
+}
+
+function getReminderAnchorTime() {
+  return parseDate(state.reminders.anchorTime) || getLastDrinkTimeForToday() || new Date();
+}
+
 function timeToday(value) {
   const [hours, minutes] = String(value || "08:00").split(":").map(Number);
   const date = new Date();
   date.setHours(hours || 0, minutes || 0, 0, 0);
   return date;
+}
+
+function parseDate(value) {
+  if (!value && !(value instanceof Date)) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
 }
 
 async function sendHydrationNotification() {
