@@ -30,7 +30,7 @@ http://localhost:4173
 公开部署地址：
 
 ```text
-https://bcristiano-water-assistant.bcristianooooo.chatgpt.site
+https://bcristiano.github.io/water-assistant/
 ```
 
 在 iPhone 上用 Safari 打开网址，点击分享按钮，选择“添加到主屏幕”。
@@ -46,8 +46,8 @@ https://bcristiano-water-assistant.bcristianooooo.chatgpt.site
 1. 在 GitHub 新建一个公开仓库，例如 `water-assistant`。
 2. 把本项目推送到仓库的 `main` 分支。
 3. 打开仓库的 `Settings` -> `Pages`。
-4. `Build and deployment` 选择 `GitHub Actions`。
-5. 等待 `Deploy to GitHub Pages` 工作流完成。
+4. `Build and deployment` 选择从 `gh-pages` 分支部署。
+5. 推送 `dist` 到 `gh-pages` 分支后等待 Pages 完成发布。
 
 完成后网址通常是：
 

@@ -95,7 +95,11 @@ function boot() {
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return mergeState(defaultState, saved || {});
+    const merged = mergeState(defaultState, saved || {});
+    if (saved && !Object.prototype.hasOwnProperty.call(saved, "profileComplete")) {
+      merged.profileComplete = hasLegacyProfile(saved);
+    }
+    return merged;
   } catch {
     return structuredClone(defaultState);
   }
@@ -109,6 +113,14 @@ function mergeState(base, saved) {
     reminders: { ...base.reminders, ...(saved.reminders || {}) },
     entriesByDate: { ...(saved.entriesByDate || {}) }
   };
+}
+
+function hasLegacyProfile(saved) {
+  const profile = saved.profile || {};
+  return ["sex", "age", "weight", "height"].every((field) => {
+    const value = profile[field];
+    return value !== undefined && value !== null && value !== "";
+  });
 }
 
 function saveState() {
