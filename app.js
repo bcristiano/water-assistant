@@ -234,9 +234,11 @@ function bindEvents() {
   });
 
   elements.remindersEnabled.addEventListener("change", async () => {
-    state.reminders.enabled = elements.remindersEnabled.checked;
-    if (state.reminders.enabled) {
-      await requestNotificationPermission();
+    if (elements.remindersEnabled.checked) {
+      const result = await requestNotificationPermission();
+      state.reminders.enabled = result === "granted";
+    } else {
+      state.reminders.enabled = false;
     }
     saveState();
     scheduleNextReminder();
@@ -244,9 +246,17 @@ function bindEvents() {
   });
 
   elements.requestNotifications.addEventListener("click", async () => {
-    await requestNotificationPermission();
+    const result = await requestNotificationPermission();
+    state.reminders.enabled = result === "granted";
+    saveState();
     scheduleNextReminder();
     render();
+    if (result === "granted") {
+      await showHydrationNotice("喝水提醒已开启", {
+        body: `下次提醒：${formatReminderTime(getNextReminderTime())}`,
+        icon: "assets/icon-192.png"
+      });
+    }
   });
 
   elements.downloadCalendar.addEventListener("click", downloadCalendarReminders);
@@ -495,6 +505,11 @@ function getPosition() {
 }
 
 async function requestNotificationPermission() {
+  if (isIosDevice() && !isStandaloneApp()) {
+    state.reminders.enabled = false;
+    return "install";
+  }
+
   if (!("Notification" in window)) {
     state.reminders.enabled = false;
     return "unsupported";
@@ -711,10 +726,22 @@ function addMinutes(date, minutes) {
 }
 
 function notificationStatusText() {
+  if (isIosDevice() && !isStandaloneApp()) return "请先添加到主屏幕后开启通知";
   if (!("Notification" in window)) return "当前浏览器不支持通知";
   if (Notification.permission === "granted" && state.reminders.enabled) return "通知已开启";
+  if (Notification.permission === "granted") return "通知已授权";
   if (Notification.permission === "denied") return "通知被系统关闭";
   return "通知未开启";
+}
+
+function isIosDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (
+    navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1
+  );
+}
+
+function isStandaloneApp() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
 function formatTime(iso) {

@@ -481,10 +481,13 @@ select:focus {
 }
 
 .switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
   width: 58px;
   height: 32px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .switch input {
@@ -492,10 +495,12 @@ select:focus {
   width: 1px;
   height: 1px;
   opacity: 0;
+  pointer-events: none;
 }
 
 .switch span {
   position: relative;
+  display: block;
   width: 58px;
   height: 32px;
   border-radius: 999px;
